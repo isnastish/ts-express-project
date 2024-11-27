@@ -1,7 +1,7 @@
 // NOTE: When a file starts with a capital letter in typescript,
 // it means the the file will be exported
 
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 
 const router = Router();
 
@@ -10,17 +10,36 @@ interface TypedRequest extends Request {
   body: { [key: string]: string | undefined };
 }
 
+// middleware
+function requireAuthMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // next -- is a reference to the next middleware that we want to call
+  if (req.session && req.session.loggedIn) {
+    next();
+    return;
+  }
+
+  console.log("auth failed");
+
+  res.send(`
+        <div>
+            <h1>Access denied! Login is required.</h1>
+            <a href="/login">Login</a>
+        </div>`);
+}
+
 router.get("/", (req: TypedRequest, res: Response) => {
   // If the user is logged in
   // display:, in order to do that, we need to get client's cookie
   if (req.session && req.session.loggedIn) {
-    req.session.loggedIn = false;
-
     // return back to login page
     res.send(`
     <div>
         <h2>You are logged in!</h2>
-        <a href="/login">Logout</a>
+        <a href="/logout">Logout</a>
     </div>
 `);
   } else {
@@ -67,17 +86,34 @@ router.post("/login", (req: TypedRequest, res: Response) => {
     email === "admin@gmail.com" &&
     password === "password"
   ) {
-    // mark this person as logged in
+    // Mark this person as logged in by setting session's cookie
     req.session = { loggedIn: true };
-    res.redirect("/");
+
     // redirect to the root route
-    // res.json({
-    //   email: email.toUpperCase(),
-    //   password: password.toUpperCase(),
-    // });
+    res.redirect("/");
   } else {
     res.status(422).send("Email or password is not valid");
   }
 });
+
+router.get("/logout", (req: Request, res: Response) => {
+  req.session = undefined;
+  res.redirect("/");
+});
+
+// NOTE: Auth middleware is applied to a specific function
+router.get(
+  "/protected",
+  requireAuthMiddleware,
+  (req: Request, res: Response) => {
+    res.send(
+      `
+      <div>
+        <h1>Welcome to protected route!</h1>
+      </div>
+        `
+    );
+  }
+);
 
 export { router };
