@@ -1,21 +1,29 @@
 import express from "express";
 import { router } from "./routes/loginRoutes";
-import bodyParser, { BodyParser } from "body-parser";
+import bodyParser from "body-parser";
 import cookieSession from "cookie-session";
 
-const app = express();
-const port: number = 5050;
+class Server {
+  app: express.Express = express();
 
-// use body parser middleware
-app.use(bodyParser.urlencoded({ extended: true }));
+  constructor() {
+    // use body parser middleware
+    this.app.use(bodyParser.urlencoded({ extended: true }));
 
-// cookie session middleware
-// in order for request.session property to exist
-app.use(cookieSession({ keys: ["some-key"] }));
+    // cookie session middleware
+    // in order for request.session property to exist
+    this.app.use(cookieSession({ keys: ["some-key"] }));
 
-// route middleware
-app.use(router);
+    // route middleware
+    this.app.use(router);
+  }
 
-app.listen(port, () => {
-  console.log(`Listening on port: ${port}`);
-});
+  serve(port: number): void {
+    this.app.listen(port, () => {
+      console.log(`Listening on port: ${port}`);
+    });
+  }
+}
+
+const server = new Server();
+server.serve(5050);
