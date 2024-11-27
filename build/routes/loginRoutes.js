@@ -6,6 +6,20 @@ exports.router = void 0;
 const express_1 = require("express");
 const router = (0, express_1.Router)();
 exports.router = router;
+// middleware
+function requireAuthMiddleware(req, res, next) {
+    // next -- is a reference to the next middleware that we want to call
+    if (req.session && req.session.loggedIn) {
+        next();
+        return;
+    }
+    console.log("auth failed");
+    res.send(`
+        <div>
+            <h1>Access denied! Login is required.</h1>
+            <a href="/login">Login</a>
+        </div>`);
+}
 router.get("/", (req, res) => {
     // If the user is logged in
     // display:, in order to do that, we need to get client's cookie
@@ -14,7 +28,7 @@ router.get("/", (req, res) => {
         res.send(`
     <div>
         <h2>You are logged in!</h2>
-        <a href="/login">Logout</a>
+        <a href="/logout">Logout</a>
     </div>
 `);
     }
@@ -54,16 +68,24 @@ router.post("/login", (req, res) => {
         password &&
         email === "admin@gmail.com" &&
         password === "password") {
-        // mark this person as logged in
+        // Mark this person as logged in by setting session's cookie
         req.session = { loggedIn: true };
-        res.redirect("/");
         // redirect to the root route
-        // res.json({
-        //   email: email.toUpperCase(),
-        //   password: password.toUpperCase(),
-        // });
+        res.redirect("/");
     }
     else {
         res.status(422).send("Email or password is not valid");
     }
+});
+router.get("/logout", (req, res) => {
+    req.session = undefined;
+    res.redirect("/");
+});
+// NOTE: Auth middleware is applied to a specific function
+router.get("/protected", requireAuthMiddleware, (req, res) => {
+    res.send(`
+      <div>
+        <h1>Welcome to protected route!</h1>
+      </div>
+        `);
 });
